@@ -7,25 +7,21 @@ import "rc-pagination/assets/index.css";
 import { Formik, Form, Field } from "formik";
 
 class Search extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      formData: {
-        search: "",
-      },
-      current: 1,
-      nbHits: 0,
-      hitsPerPage: 5,
-      page: 0,
-      nbPages: 0,
-      mappedNews: "",
-      storedSearch: [],
-      paginationCheck: "",
-    };
-  }
-
+  state = {
+    formData: {
+      search: "",
+    },
+    current: 1,
+    nbHits: 0,
+    hitsPerPage: 5,
+    page: 0,
+    nbPages: 0,
+    mappedNews: "",
+    storedSearch: [],
+    paginationCheck: "",
+  };
   componentDidMount() {
-    this.retrieveSearchNews("");
+    this.retrieveNewsFrontPage();
   }
 
   searchedWords = (searchTerm) => {
