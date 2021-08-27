@@ -11,16 +11,18 @@ const History = (props) => {
   };
 
   const searchTermMapper = (term, index) => {
-    return (
-    <ListGroup.Item key={`Key - ${index}`}>{term}</ListGroup.Item>
-    
-    );
+    return <ListGroup.Item key={`Key - ${index}`}>{term}</ListGroup.Item>;
   };
+
+  const newsList = props.location.state.payLoadStories;
+
+  const newNewList = JSON.parse(newsList);
 
   const lastViewedNewsMapper = (previousStory, index) => {
     return (
-    <ListGroup.Item key={`Key - ${index}`}>{previousStory.substr(5)}</ListGroup.Item>
-    
+      <ListGroup.Item key={`Key - ${index}`}>
+        {previousStory.title}
+      </ListGroup.Item>
     );
   };
 
@@ -30,9 +32,8 @@ const History = (props) => {
       <br />
       <h1>Your Last Five News Stories</h1>
       <br />
-      <ListGroup>
-      {props.location.state.payLoadList.map(lastViewedNewsMapper)}
-      </ListGroup>
+      <ListGroup>{newNewList.map(lastViewedNewsMapper)}</ListGroup>
+
       <br />
       <h1>Your Last Search Terms</h1>
       <br />

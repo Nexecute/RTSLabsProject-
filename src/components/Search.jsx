@@ -1,10 +1,18 @@
 import React from "react";
-import * as userService from "../services/userService";
+import * as userService from "../services/newsService";
 import NewsStory from "./NewsStory";
 import { Button, InputGroup } from "react-bootstrap";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import * as Yup from "yup";
 import Pagination from "rc-pagination";
 import "rc-pagination/assets/index.css";
-import { Formik, Form, Field } from "formik";
+import en_US from "rc-pagination/es/locale/en_US";
+
+const searchSchema = Yup.object().shape({
+  search: Yup.string()
+    .min(1)
+    .required("Minimum One Character Required for Search"),
+});
 
 class Search extends React.Component {
   state = {
@@ -17,25 +25,21 @@ class Search extends React.Component {
     page: 0,
     nbPages: 0,
     mappedNews: "",
-    storedSearch: [],
+    searchWords: [],
     paginationCheck: "",
   };
   componentDidMount() {
-    this.retrieveNewsFrontPage();
+    this.getFrontPageNews();
   }
 
-  searchedWords = (searchTerm) => {
-    let storage = this.state.storedSearch;
-    if (searchTerm) {
-      storage.push(searchTerm);
-    }
-
-    this.setState(() => ({ storedSearch: storage }));
+  searchWords = (searchTerm) => {
+    let newSearchWord = [...this.state.searchWords, searchTerm];
+    this.setState(() => ({ searchWords: newSearchWord }));
   };
 
   handleSubmit = (values) => {
-    this.retrieveSearchNews(values.search);
-    this.searchedWords(values.search);
+    this.getSearchNews(values.search);
+    this.searchWords(values.search);
   };
 
   onChange = (page) => {
@@ -48,20 +52,20 @@ class Search extends React.Component {
       },
       () => {
         this.state.paginationCheck.includes("story")
-          ? this.retrieveSearchNews(this.state.storedSearch.slice(-1)[0])
-          : this.retrieveNewsFrontPage();
+          ? this.getSearchNews(this.state.searchWords.slice(-1)[0])
+          : this.getFrontPageNews();
       }
     );
   };
 
-  retrieveSearchNews = (search) => {
+  getSearchNews = (search) => {
     userService
       .getSearchNews(search, this.state.page, this.state.hitsPerPage)
-      .then(this.onRetrieveSearchNewsSuccess)
-      .catch(this.onRetrieveSearchNewsError);
+      .then(this.onGetSearchNewsSuccess)
+      .catch(this.onGetSearchNewsError);
   };
 
-  onRetrieveSearchNewsSuccess = (response) => {
+  onGetSearchNewsSuccess = (response) => {
     this.setState(() => {
       return {
         mappedNews: response.data.hits.map(this.mapNews),
@@ -72,20 +76,21 @@ class Search extends React.Component {
         paginationCheck: response.config.url,
       };
     });
+    sessionStorage.setItem("previousNews", JSON.stringify(response.data.hits));
   };
 
-  onRetrieveSearchNewsError = (response) => {
+  onGetSearchNewsError = (response) => {
     console.warn({ error: response });
   };
 
-  retrieveNewsFrontPage = () => {
+  getFrontPageNews = () => {
     userService
       .getHackerNews(this.state.page, this.state.hitsPerPage)
-      .then(this.onRetrieveNewsFrontPageSuccess)
-      .catch(this.onRetrieveNewsFrontPageError);
+      .then(this.onGetFrontPageNewsSuccess)
+      .catch(this.onGetFrontPageNewsError);
   };
 
-  onRetrieveNewsFrontPageSuccess = (response) => {
+  onGetFrontPageNewsSuccess = (response) => {
     this.setState(() => {
       return {
         mappedNews: response.data.hits.map(this.mapNews),
@@ -96,27 +101,28 @@ class Search extends React.Component {
         paginationCheck: response.config.url,
       };
     });
+    sessionStorage.setItem("previousNews", JSON.stringify(response.data.hits));
   };
 
-  onRetrieveNewsFrontPageError = (response) => {
+  onGetFrontPageNewsError = (response) => {
     console.warn({ error: response });
   };
 
   mapNews = (oneStory) => {
     return (
-      <React.Fragment key={`News-${oneStory.title}`}>
+      <React.Fragment key={`News-${oneStory.objectID}`}>
         <NewsStory oneStory={oneStory} />
       </React.Fragment>
     );
   };
 
   historyClick = () => {
-    let searchWords = this.state.storedSearch;
-    let mapped = this.state.mappedNews.map((story) => story.key);
+    let searchWordsList = this.state.searchWords;
+    let previousNewsStories = sessionStorage.getItem("previousNews");
     this.props.history.push("/history", {
       typeOf: "LIST",
-      payLoadList: mapped,
-      payLoadTerms: searchWords,
+      payLoadStories: previousNewsStories,
+      payLoadTerms: searchWordsList,
     });
   };
 
@@ -140,7 +146,7 @@ class Search extends React.Component {
             variant="success"
             size="lg"
             active
-            onClick={this.retrieveNewsFrontPage}
+            onClick={this.getFrontPageNews}
           >
             Click for Front Page News!
           </Button>{" "}
@@ -168,6 +174,7 @@ class Search extends React.Component {
             enableReinitialize={true}
             initialValues={this.state.formData}
             onSubmit={this.handleSubmit}
+            validationSchema={searchSchema}
           >
             <Form>
               <InputGroup className="mb-3">
@@ -180,6 +187,11 @@ class Search extends React.Component {
                 <Button variant="primary" type="submit" id="button-addon2">
                   Search!
                 </Button>
+                <ErrorMessage
+                  name="search"
+                  component="div"
+                  className="has-error"
+                />
               </InputGroup>
             </Form>
           </Formik>
@@ -187,6 +199,7 @@ class Search extends React.Component {
         <br />
         <br />
         <Pagination
+          locale={en_US}
           onChange={this.onChange}
           current={this.state.current}
           total={this.state.nbHits}
